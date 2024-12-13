@@ -1,0 +1,83 @@
+name: "Update Translations"
+description: "Updates translations by running a script and pushing changes to a new branch, then creating a PR."
+author: "Your Name"
+branding:
+  color: "blue"
+  icon: "globe"
+
+inputs:
+  openai_api_key:
+    description: "OpenAI API key for fetching translations"
+    required: true
+  personal_access_token:
+    description: "Personal Access Token to create branches and PRs"
+    required: true
+  locales_path:
+    description: "The path to the locales directory relative to the repository root"
+    required: true
+    default: ""
+
+outputs:
+  has_changes:
+    description: "Indicates if any translation changes were made"
+    value: ${{ steps.check_changes.outputs.has_changes }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 2
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '22'
+    
+    - name: Install dependencies
+      shell: bash
+      working-directory: ./scripts/translate
+      run: yarn install
+
+    - name: Run translation update script
+      shell: bash
+      working-directory: ./scripts/translate
+      env:
+        OPENAI_API_KEY: ${{ inputs.openai_api_key }}
+      run: node index.js ${{ inputs.locales_path }}
+
+    - name: Configure Git
+      shell: bash
+      run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+
+    - name: Check for changes
+      id: check_changes
+      shell: bash
+      run: |
+        if git diff --quiet; then
+          echo "No changes detected"
+          echo "has_changes=false" >> $GITHUB_OUTPUT
+        else
+          echo "Changes detected"
+          echo "has_changes=true" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Create a new branch
+      if: steps.check_changes.outputs.has_changes == 'true'
+      shell: bash
+      run: |
+        BRANCH_NAME="update-translations-$(date +'%Y%m%d%H%M%S')"
+        echo "BRANCH_NAME=$BRANCH_NAME" >> $GITHUB_ENV
+
+    - name: Create pull request
+      if: steps.check_changes.outputs.has_changes == 'true'
+      uses: peter-evans/create-pull-request@v5
+      with:
+        token: ${{ inputs.personal_access_token }}
+        branch: ${{ env.BRANCH_NAME }}
+        base: main
+        title: "Update Translations"
+        body: "This PR includes updated translations based on the latest changes to 'en.json'."
