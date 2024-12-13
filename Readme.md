@@ -28,7 +28,7 @@ Easily keep your translation files up-to-date and in sync with the latest Englis
        runs-on: ubuntu-latest
        steps:
          - name: Use GPT Localize Action
-           uses: your-org/gpt-localize-action@v1
+           uses: mangoappstudio/gpt-localize-action@v2
            with:
              openai_api_key: ${{ secrets.OPENAI_API_KEY }}
              personal_access_token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
