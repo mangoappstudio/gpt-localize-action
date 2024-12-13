@@ -1,5 +1,5 @@
 name: "GPT Localize Action"
-description: "Easily keep your translation files up-to-date and in sync with the latest English source strings using GPT-4. This action automatically detects changed or missing keys in your `en.json` source file, requests translations for multiple target languages, and updates your repository with the new localized content—no manual translation management required."
+description: "Easily keep your translation files up-to-date and in sync with the latest English source strings using GPT-4."
 author: "Vivek Maskara"
 branding:
   color: "blue"
