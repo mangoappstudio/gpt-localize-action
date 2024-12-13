@@ -42,10 +42,9 @@ runs:
 
     - name: Run translation update script
       shell: bash
-      working-directory: ./scripts/translate
       env:
         OPENAI_API_KEY: ${{ inputs.openai_api_key }}
-      run: node index.js ${{ inputs.locales_path }}
+      run: node scripts/translate/index.js ${{ inputs.locales_path }}
 
     - name: Configure Git
       shell: bash
