@@ -1,6 +1,6 @@
-name: "Update Translations"
-description: "Updates translations by running a script and pushing changes to a new branch, then creating a PR."
-author: "Your Name"
+name: "GPT Localize Action"
+description: "Easily keep your translation files up-to-date and in sync with the latest English source strings using GPT-4. This action automatically detects changed or missing keys in your `en.json` source file, requests translations for multiple target languages, and updates your repository with the new localized content—no manual translation management required."
+author: "Vivek Maskara"
 branding:
   color: "blue"
   icon: "globe"
