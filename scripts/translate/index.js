@@ -32,7 +32,7 @@ const saveJson = (filePath, data) => {
 
 // Helper to fetch translations
 const fetchTranslations = async (translations, targetLang) => {
-    const systemPrompt = `You are a translator. Translate the following English phrases into ${targetLang}. Respond with only a JSON object where the keys are the original phrases and the values are their translations.`;
+    const systemPrompt = `You are a translator. Translate the following English phrases into ${targetLang}. Respond with only a JSON object where the keys are the original phrases and the values are their translations. If a string is enclosed in double curly braces, do not translate the portion inside the curly braces. For example, if the English phrase is "Hello, {{name}}", the french translation should be "Bonjour, {{name}}".`;
 
     const messages = [
         { role: 'system', content: systemPrompt },
