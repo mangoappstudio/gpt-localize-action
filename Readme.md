@@ -13,7 +13,8 @@ Easily keep your translation files up-to-date and in sync with the latest Englis
    Store your OpenAI API key (`OPENAI_API_KEY`) and a Personal Access Token (`PERSONAL_ACCESS_TOKEN`) as GitHub Secrets.
 
 2. **Configure Your Workflow:**  
-   Add the action to your workflow file, specifying the `locales_path` where your `en.json` and target language files reside.  
+   Add the action to your workflow file, specifying the `locales_path` where your base translation file and target language files reside. Optionally, you can specify the base language and base translation file.  
+
    ```yaml
    name: Update Translations
    on:
@@ -32,7 +33,9 @@ Easily keep your translation files up-to-date and in sync with the latest Englis
            with:
              openai_api_key: ${{ secrets.OPENAI_API_KEY }}
              personal_access_token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
-             locales_path: "./path/to/locales"
+             locales_path: "./path/to/locales" # Optional, default is "./locales"
+             base_language: "en" # Optional, default is "en"
+             base_file: "en.json" # Optional, default is "en.json"
    ```
    
 3. **Review & Merge:**  

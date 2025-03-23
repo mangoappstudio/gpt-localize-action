@@ -16,6 +16,14 @@ inputs:
     description: "The path to the locales directory relative to the repository root"
     required: true
     default: ""
+  base_language:
+    description: "The base language for translations (default: en)"
+    required: false
+    default: "en"
+  base_file:
+    description: "The base translation file (default: en.json)"
+    required: false
+    default: "en.json"
 
 outputs:
   has_changes:
@@ -51,7 +59,7 @@ runs:
       shell: bash
       env:
         OPENAI_API_KEY: ${{ inputs.openai_api_key }}
-      run: node action-repo/scripts/translate/index.js ${{ inputs.locales_path }}
+      run: node action-repo/scripts/translate/index.js ${{ inputs.locales_path }} ${{ inputs.base_language }} ${{ inputs.base_file }}
 
     - name: Configure Git
       shell: bash
@@ -86,4 +94,4 @@ runs:
         branch: ${{ env.BRANCH_NAME }}
         base: main
         title: "Update Translations"
-        body: "This PR includes updated translations based on the latest changes to 'en.json'."
+        body: "This PR includes updated translations based on the latest changes to '${{ inputs.base_file }}'."

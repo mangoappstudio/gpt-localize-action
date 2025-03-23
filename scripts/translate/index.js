@@ -11,7 +11,9 @@ const openai = new OpenAI({
 const args = process.argv.slice(2);
 
 const langArg = args[0] || 'locales';
-const enFile = path.join(langArg, 'en.json');
+const baseLangArg = args[1] || 'en';
+const baseFileArg = args[2] || 'en.json';
+const enFile = path.join(langArg, baseFileArg);
 const langDir = path.resolve(langArg)
 
 // Helper to load JSON
@@ -32,7 +34,7 @@ const saveJson = (filePath, data) => {
 
 // Helper to fetch translations
 const fetchTranslations = async (translations, targetLang) => {
-    const systemPrompt = `You are a translator. Translate the following English phrases into ${targetLang}. Respond with only a JSON object where the keys are the original phrases and the values are their translations. If a string is enclosed in double curly braces, do not translate the portion inside the curly braces. For example, if the English phrase is "Hello, {{name}}", the french translation should be "Bonjour, {{name}}".`;
+    const systemPrompt = `You are a translator. Translate the following ${baseLangArg} phrases into ${targetLang}. Respond with only a JSON object where the keys are the original phrases and the values are their translations. If a string is enclosed in double curly braces, do not translate the portion inside the curly braces. For example, if the English phrase is "Hello, {{name}}", the french translation should be "Bonjour, {{name}}".`;
 
     const messages = [
         { role: 'system', content: systemPrompt },
@@ -125,20 +127,20 @@ const updateTranslations = async () => {
     const currentEnKeys = extractNestedKeys(currentEnJson);
 
     if (Object.keys(changedKeys).length === 0) {
-        console.log('No changes detected in en.json.');
+        console.log(`No changes detected in ${baseFileArg}.`);
         // We still proceed to ensure missing keys are synced.
     } else {
-        console.log(`Detected changes in en.json: ${Object.keys(changedKeys).length} keys`);
+        console.log(`Detected changes in ${baseFileArg}: ${Object.keys(changedKeys).length} keys`);
     }
 
-    const langs = fs.readdirSync(langDir).filter(file => file.endsWith('.json') && file !== 'en.json');
+    const langs = fs.readdirSync(langDir).filter(file => file.endsWith('.json') && file !== baseFileArg);
 
     for (const langFile of langs) {
         const langPath = path.join(langDir, langFile);
         const langJson = loadJson(langPath);
         const langKeys = extractNestedKeys(langJson);
 
-        // Detect missing keys: keys in en but not in the target lang file
+        // Detect missing keys: keys in base but not in the target lang file
         const missingKeys = {};
         for (const key in currentEnKeys) {
             if (!(key in langKeys)) {
