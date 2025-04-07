@@ -1,2 +1,6 @@
 scripts/translate/node_modules/*
 scripts/translate/.env
+node_modules/*
+*.log
+*.tsbuildinfo
+coverage
