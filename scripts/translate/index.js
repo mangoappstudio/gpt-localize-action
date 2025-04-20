@@ -7,10 +7,6 @@ require('dotenv').config();
 // Maximum number of keys to translate in a single API call
 const TRANSLATION_BATCH_SIZE = 100;
 
-const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
-});
-
 const args = process.argv.slice(2);
 
 const langArg = args[0] || 'locales';
@@ -25,8 +21,13 @@ const loadJson = (filePath) => {
         const data = fs.readFileSync(filePath, 'utf8');
         return JSON.parse(data);
     } catch (error) {
-        console.error(`Error loading JSON from ${filePath}:`, error.message);
-        process.exit(1);
+        const msg = `Error loading JSON from ${filePath}: ${error.message}`;
+        if (process.env.NODE_ENV === 'test') {
+            throw new Error(msg);
+        } else {
+            console.error(msg);
+            process.exit(1);
+        }
     }
 };
 
@@ -38,16 +39,20 @@ const saveJson = (filePath, data) => {
 // Helper to translate in batches
 const translateBatch = async (batchTranslations, targetLang, systemPrompt) => {
     try {
+        const openai = new OpenAI({
+            apiKey: process.env.OPENAI_API_KEY,
+        });
+
         const messages = [
             { role: 'system', content: systemPrompt },
             { role: 'user', content: JSON.stringify(batchTranslations) },
         ];
-        
+
         const response = await openai.chat.completions.create({
             model: 'gpt-4',
             messages,
         });
-        
+
         return JSON.parse(response.choices[0].message.content);
     } catch (error) {
         console.error('Error in translation batch:', error.response?.data || error.message);
@@ -62,41 +67,41 @@ const fetchTranslations = async (translations, targetLang) => {
     // Get all keys that need to be translated
     const keysToTranslate = Object.keys(translations);
     const totalKeys = keysToTranslate.length;
-    
+
     // If small enough for a single batch, process directly
     if (totalKeys <= TRANSLATION_BATCH_SIZE) {
         return await translateBatch(translations, targetLang, systemPrompt);
     }
-    
+
     // Initialize the results object
     const allResults = {};
-    
+
     // Process in batches
     for (let i = 0; i < totalKeys; i += TRANSLATION_BATCH_SIZE) {
         // Get the current batch of keys
         const batchKeys = keysToTranslate.slice(i, i + TRANSLATION_BATCH_SIZE);
-        
+
         // Create a translation object for the current batch
         const batchTranslations = {};
         batchKeys.forEach(key => {
             batchTranslations[key] = translations[key];
         });
-        
-        console.log(`Translating batch ${Math.floor(i/TRANSLATION_BATCH_SIZE) + 1} of ${Math.ceil(totalKeys/TRANSLATION_BATCH_SIZE)} (${batchKeys.length} keys)...`);
-        
+
+        console.log(`Translating batch ${Math.floor(i / TRANSLATION_BATCH_SIZE) + 1} of ${Math.ceil(totalKeys / TRANSLATION_BATCH_SIZE)} (${batchKeys.length} keys)...`);
+
         const batchResults = await translateBatch(batchTranslations, targetLang, systemPrompt);
-        
+
         if (batchResults) {
             // Merge the batch results into the overall results
             Object.assign(allResults, batchResults);
         }
     }
-    
+
     // If we have no results at all, return null to indicate complete failure
     if (Object.keys(allResults).length === 0) {
         return null;
     }
-    
+
     return allResults;
 };
 
@@ -119,20 +124,22 @@ const extractNestedKeys = (obj, prefix = '') => {
 // Helper to get the previous file content
 const getPreviousFileContent = (filePath) => {
     try {
-        // Check if the file existed in the previous commit
         const existsInPreviousCommit = execSync(`git ls-tree -r HEAD^ -- ${filePath}`, { encoding: 'utf8' }).trim();
         if (!existsInPreviousCommit) {
             console.log(`File ${filePath} does not exist in the previous commit. Assuming an empty object.`);
             return {};
         }
 
-        // Fetch the file content from the previous commit
         const previousContent = execSync(`git show HEAD^:${filePath}`, { encoding: 'utf8' });
-
         return JSON.parse(previousContent);
     } catch (error) {
-        console.error(`Error retrieving previous version of ${filePath}:`, error.message);
-        process.exit(1);
+        const msg = `Error retrieving previous version of ${filePath}: ${error.message}`;
+        if (process.env.NODE_ENV === 'test') {
+            throw new Error(msg);
+        } else {
+            console.error(msg);
+            process.exit(1);
+        }
     }
 };
 
@@ -189,7 +196,7 @@ const removeKeys = (obj, keysToRemove) => {
         for (let i = path.length - 1; i >= 0; i--) {
             const parent = i > 0 ? path[i - 1].obj : obj;
             const currentKey = path[i].key;
-            
+
             if (Object.keys(parent[currentKey]).length === 0) {
                 delete parent[currentKey];
             }
@@ -298,18 +305,20 @@ const updateTranslations = async () => {
     }
 };
 
-updateTranslations().catch(err => console.error('Error updating translations:', err));
+if (require.main === module) {
+    updateTranslations().catch(err => console.error('Error updating translations:', err));
+}
 
 // Add these exports at the end of the file for testing purposes
 module.exports = {
-  loadJson,
-  saveJson,
-  fetchTranslations,
-  extractNestedKeys,
-  getPreviousFileContent,
-  getChangedKeys,
-  getDeletedKeys,
-  removeKeys,
-  applyTranslations,
-  updateTranslations
+    loadJson,
+    saveJson,
+    fetchTranslations,
+    extractNestedKeys,
+    getPreviousFileContent,
+    getChangedKeys,
+    getDeletedKeys,
+    removeKeys,
+    applyTranslations,
+    updateTranslations
 };
