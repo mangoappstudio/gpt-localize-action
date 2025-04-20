@@ -71,7 +71,8 @@ runs:
       id: check_changes
       shell: bash
       run: |
-        if git diff --quiet; then
+        # Exclude action-repo directory from git diff
+        if git diff --quiet -- ':!action-repo'; then
           echo "No changes detected"
           echo "has_changes=false" >> $GITHUB_OUTPUT
         else
@@ -85,6 +86,11 @@ runs:
       run: |
         BRANCH_NAME="update-translations-$(date +'%Y%m%d%H%M%S')"
         echo "BRANCH_NAME=$BRANCH_NAME" >> $GITHUB_ENV
+        git checkout -b $BRANCH_NAME
+        
+        # Only stage changes to translation files, explicitly exclude action-repo
+        git add -A -- "${{ inputs.locales_path }}" ':!action-repo'
+        git commit -m "Update translations"
 
     - name: Create pull request
       if: steps.check_changes.outputs.has_changes == 'true'
@@ -95,3 +101,6 @@ runs:
         base: main
         title: "Update Translations"
         body: "This PR includes updated translations based on the latest changes to '${{ inputs.base_file }}'."
+        path: .
+        add-paths: |
+          ${{ inputs.locales_path }}/**/*
