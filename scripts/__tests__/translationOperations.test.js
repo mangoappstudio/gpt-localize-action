@@ -57,19 +57,19 @@ describe('Translation Operations', () => {
         });
     });
 
-    describe('fetchTranslations', () => {
-        beforeEach(() => {
-            // Create a fresh mock for translateBatch in each test
-            jest.spyOn(translate, 'translateBatch').mockImplementation((batch) => {
-                const result = {};
-                Object.keys(batch).forEach(key => {
-                    if (key === 'hello') result[key] = 'bonjour';
-                    else if (key === 'world') result[key] = 'monde';
-                    else result[key] = `translated_${key}`;
-                });
-                return Promise.resolve(result);
-            });
-        });
+    // describe('fetchTranslations', () => {
+    //     beforeEach(() => {
+    //         // Create a fresh mock for translateBatch in each test
+    //         jest.spyOn(translate, 'translateBatch').mockImplementation((batch) => {
+    //             const result = {};
+    //             Object.keys(batch).forEach(key => {
+    //                 if (key === 'hello') result[key] = 'bonjour';
+    //                 else if (key === 'world') result[key] = 'monde';
+    //                 else result[key] = `translated_${key}`;
+    //             });
+    //             return Promise.resolve(result);
+    //         });
+    //     });
 
         // it('processes a small batch in one call', async () => {
         //     const result = await translate.fetchTranslations({ hello: 'hello', world: 'world' }, 'fr');
@@ -92,5 +92,5 @@ describe('Translation Operations', () => {
         //     const result = await translate.fetchTranslations({ test: 'test' }, 'fr');
         //     expect(result).toBeNull();
         // });
-    });
+    // });
 });
