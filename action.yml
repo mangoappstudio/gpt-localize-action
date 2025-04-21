@@ -91,6 +91,8 @@ runs:
         # Only stage changes to translation files, explicitly exclude action-repo
         git add -A -- "${{ inputs.locales_path }}" ':!action-repo'
         git commit -m "Update translations"
+        # Push the branch to the remote
+        git push -u origin $BRANCH_NAME
 
     - name: Create pull request
       if: steps.check_changes.outputs.has_changes == 'true'
@@ -104,3 +106,4 @@ runs:
         path: .
         add-paths: |
           ${{ inputs.locales_path }}/**/*
+        create-branch: false
