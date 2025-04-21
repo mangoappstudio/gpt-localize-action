@@ -5,7 +5,7 @@ const { execSync } = require('child_process');
 require('dotenv').config();
 
 // Maximum number of keys to translate in a single API call
-const TRANSLATION_BATCH_SIZE = 100;
+const TRANSLATION_BATCH_SIZE = 25;
 
 const args = process.argv.slice(2);
 
@@ -62,7 +62,22 @@ const translateBatch = async (batchTranslations, targetLang, systemPrompt) => {
 
 // Helper to fetch translations
 const fetchTranslations = async (translations, targetLang) => {
-    const systemPrompt = `You are a translator. Translate the following ${baseLangArg} phrases into ${targetLang}. Respond with only a JSON object where the keys are the original phrases and the values are their translations. If a string is enclosed in double curly braces, do not translate the portion inside the curly braces. For example, if the English phrase is "Hello, {{name}}", the french translation should be "Bonjour, {{name}}".`;
+    const systemPrompt = `You are a translator API that only responds with valid JSON. Translate the following ${baseLangArg} phrases into ${targetLang}.
+
+IMPORTANT REQUIREMENTS:
+1. Respond with ONLY a valid JSON object.
+2. The JSON should have the original phrases as keys and their translations as values.
+3. Do not add any comments, explanations, or text outside the JSON object.
+4. If a string is enclosed in double curly braces like {{name}}, do not translate that portion.
+5. Ensure all quotes are properly escaped in the JSON.
+
+Example input:
+{"Hello, {{name}}": "Hello, {{name}}", "Welcome": "Welcome"}
+
+Example valid response (for French):
+{"Hello, {{name}}": "Bonjour, {{name}}", "Welcome": "Bienvenue"}
+
+NO COMMENTS OR TEXT BEFORE OR AFTER THE JSON OBJECT ARE ALLOWED.`;
 
     // Get all keys that need to be translated
     const keysToTranslate = Object.keys(translations);
