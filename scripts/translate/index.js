@@ -124,8 +124,8 @@ const extractNestedKeys = (obj, prefix = '') => {
 // Helper to get the previous file content
 const getPreviousFileContent = (filePath) => {
     try {
-        const existsInPreviousCommit = execSync(`git ls-tree -r HEAD^ -- ${filePath}`, { encoding: 'utf8' }).trim();
-        if (!existsInPreviousCommit) {
+        const existsInPreviousCommit = execSync(`git ls-tree -r HEAD^ -- ${filePath}`, { encoding: 'utf8' });
+        if (!existsInPreviousCommit || !existsInPreviousCommit.trim()) {
             console.log(`File ${filePath} does not exist in the previous commit. Assuming an empty object.`);
             return {};
         }
@@ -320,5 +320,6 @@ module.exports = {
     getDeletedKeys,
     removeKeys,
     applyTranslations,
-    updateTranslations
+    updateTranslations,
+    translateBatch
 };

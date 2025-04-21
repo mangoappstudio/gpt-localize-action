@@ -19,6 +19,7 @@ module.exports = {
   collectCoverageFrom: [
     'scripts/**/*.js',
     '!scripts/**/jest.config.js',
+    '!scripts/**/node_modules/**',
     '!scripts/**/__mocks__/**',
     '!scripts/**/__tests__/**'
   ],
