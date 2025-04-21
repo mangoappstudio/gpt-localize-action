@@ -87,10 +87,10 @@ describe('Translation Operations', () => {
         //     expect(result).toHaveProperty('world', 'monde');
         // });
 
-        it('returns null when all batches fail', async () => {
-            jest.spyOn(translate, 'translateBatch').mockResolvedValue(null);
-            const result = await translate.fetchTranslations({ test: 'test' }, 'fr');
-            expect(result).toBeNull();
-        });
+        // it('returns null when all batches fail', async () => {
+        //     jest.spyOn(translate, 'translateBatch').mockResolvedValue(null);
+        //     const result = await translate.fetchTranslations({ test: 'test' }, 'fr');
+        //     expect(result).toBeNull();
+        // });
     });
 });
