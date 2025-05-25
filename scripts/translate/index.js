@@ -1,5 +1,7 @@
 const fs = require('fs');
 const path = require('path');
+const yargs = require('yargs/yargs');
+const { hideBin } = require('yargs/helpers');
 const { fetchTranslations } = require('./translation-service');
 const { loadJson, saveJson } = require('./json-utils');
 const { getPreviousFileContent } = require('./git-utils');
@@ -9,12 +11,39 @@ require('dotenv').config();
 // Maximum number of keys to translate in a single API call
 const TRANSLATION_BATCH_SIZE = 25;
 
-const args = process.argv.slice(2);
+// Replace the args parsing section
+const argv = yargs(hideBin(process.argv))
+    .option('dir', {
+        alias: 'd',
+        type: 'string',
+        description: 'Directory containing locale files',
+        default: 'locales'
+    })
+    .option('sourceLanguage', {
+        alias: 's',
+        type: 'string',
+        description: 'Source language code',
+        default: 'en'
+    })
+    .option('sourceFile', {
+        alias: 'f',
+        type: 'string',
+        description: 'Source language file name',
+        default: 'en.json'
+    })
+    .option('test', {
+        alias: 't',
+        type: 'boolean',
+        description: 'Run in test mode',
+        default: false
+    })
+    .help()
+    .argv;
 
-const langArg = args[0] || 'locales';
-const baseLangArg = args[1] || 'en';
-const baseFileArg = args[2] || 'en.json';
-const testMode = args[3] === 'true';
+const langArg = argv.dir;
+const baseLangArg = argv.sourceLanguage;
+const baseFileArg = argv.sourceFile;
+const testMode = argv.test;
 const enFile = path.join(langArg, baseFileArg);
 const langDir = path.resolve(langArg)
 

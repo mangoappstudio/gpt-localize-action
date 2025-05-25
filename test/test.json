@@ -1,3 +1,5 @@
 {
-    "hello": "world"
+  "hello": "world",
+  "welcome": "[TEST] Welcome to Free Online Calculators",
+  "Search calculators": "[TEST] Search calculators"
 }
