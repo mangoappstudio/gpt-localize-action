@@ -59,7 +59,7 @@ runs:
       shell: bash
       env:
         OPENAI_API_KEY: ${{ inputs.openai_api_key }}
-      run: node action-repo/scripts/translate/index.js ${{ inputs.locales_path }} ${{ inputs.base_language }} ${{ inputs.base_file }}
+      run: node action-repo/scripts/translate/index.js -d ${{ inputs.locales_path }} -s ${{ inputs.base_language }} -f ${{ inputs.base_file }}
 
     - name: Configure Git
       shell: bash
