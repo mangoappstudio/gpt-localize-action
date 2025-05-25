@@ -18,6 +18,7 @@ module.exports = {
   // Collect coverage only from script files, excluding config/mocks/test files
   collectCoverageFrom: [
     'scripts/**/*.js',
+    '!scripts/**/openai.js',
     '!scripts/**/jest.config.js',
     '!scripts/**/node_modules/**',
     '!scripts/**/__mocks__/**',
