@@ -1,7 +1,8 @@
 const fs = require('fs');
 const path = require('path');
-const { OpenAI } = require('openai');
 const { execSync } = require('child_process');
+const { fetchTranslations } = require('./translation-service');
+const { loadJson, saveJson } = require('./json-utils');
 require('dotenv').config();
 
 // Maximum number of keys to translate in a single API call
@@ -12,113 +13,9 @@ const args = process.argv.slice(2);
 const langArg = args[0] || 'locales';
 const baseLangArg = args[1] || 'en';
 const baseFileArg = args[2] || 'en.json';
+const testMode = args[3] === 'true';
 const enFile = path.join(langArg, baseFileArg);
 const langDir = path.resolve(langArg)
-
-// Helper to load JSON
-const loadJson = (filePath) => {
-    try {
-        const data = fs.readFileSync(filePath, 'utf8');
-        return JSON.parse(data);
-    } catch (error) {
-        const msg = `Error loading JSON from ${filePath}: ${error.message}`;
-        if (process.env.NODE_ENV === 'test') {
-            throw new Error(msg);
-        } else {
-            console.error(msg);
-            process.exit(1);
-        }
-    }
-};
-
-// Helper to save JSON
-const saveJson = (filePath, data) => {
-    fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf8');
-};
-
-// Helper to translate in batches
-const translateBatch = async (batchTranslations, targetLang, systemPrompt) => {
-    try {
-        const openai = new OpenAI({
-            apiKey: process.env.OPENAI_API_KEY,
-        });
-
-        const messages = [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: JSON.stringify(batchTranslations) },
-        ];
-
-        const response = await openai.chat.completions.create({
-            model: 'gpt-4',
-            messages,
-        });
-
-        return JSON.parse(response.choices[0].message.content);
-    } catch (error) {
-        console.error('Error in translation batch:', error.response?.data || error.message);
-        return null;
-    }
-};
-
-// Helper to fetch translations
-const fetchTranslations = async (translations, targetLang) => {
-    const systemPrompt = `You are a translator API that only responds with valid JSON. Translate the following ${baseLangArg} phrases into ${targetLang}.
-
-IMPORTANT REQUIREMENTS:
-1. Respond with ONLY a valid JSON object.
-2. The JSON should have the original phrases as keys and their translations as values.
-3. Do not add any comments, explanations, or text outside the JSON object.
-4. If a string is enclosed in double curly braces like {{name}}, do not translate that portion.
-5. Ensure all quotes are properly escaped in the JSON.
-
-Example input:
-{"Hello, {{name}}": "Hello, {{name}}", "Welcome": "Welcome"}
-
-Example valid response (for French):
-{"Hello, {{name}}": "Bonjour, {{name}}", "Welcome": "Bienvenue"}
-
-NO COMMENTS OR TEXT BEFORE OR AFTER THE JSON OBJECT ARE ALLOWED.`;
-
-    // Get all keys that need to be translated
-    const keysToTranslate = Object.keys(translations);
-    const totalKeys = keysToTranslate.length;
-
-    // If small enough for a single batch, process directly
-    if (totalKeys <= TRANSLATION_BATCH_SIZE) {
-        return await translateBatch(translations, targetLang, systemPrompt);
-    }
-
-    // Initialize the results object
-    const allResults = {};
-
-    // Process in batches
-    for (let i = 0; i < totalKeys; i += TRANSLATION_BATCH_SIZE) {
-        // Get the current batch of keys
-        const batchKeys = keysToTranslate.slice(i, i + TRANSLATION_BATCH_SIZE);
-
-        // Create a translation object for the current batch
-        const batchTranslations = {};
-        batchKeys.forEach(key => {
-            batchTranslations[key] = translations[key];
-        });
-
-        console.log(`Translating batch ${Math.floor(i / TRANSLATION_BATCH_SIZE) + 1} of ${Math.ceil(totalKeys / TRANSLATION_BATCH_SIZE)} (${batchKeys.length} keys)...`);
-
-        const batchResults = await translateBatch(batchTranslations, targetLang, systemPrompt);
-
-        if (batchResults) {
-            // Merge the batch results into the overall results
-            Object.assign(allResults, batchResults);
-        }
-    }
-
-    // If we have no results at all, return null to indicate complete failure
-    if (Object.keys(allResults).length === 0) {
-        return null;
-    }
-
-    return allResults;
-};
 
 // Helper to extract nested keys
 const extractNestedKeys = (obj, prefix = '') => {
@@ -191,32 +88,43 @@ const getDeletedKeys = (currentJson, previousJson) => {
 // Helper to remove keys from an object
 const removeKeys = (obj, keysToRemove) => {
     for (const key of keysToRemove) {
-        const keys = key.split('.');
-        let temp = obj;
+        const parts = key.split('.');
+        let current = obj;
         const path = [];
 
-        // Navigate to the deepest object
-        for (let i = 0; i < keys.length - 1; i++) {
-            if (!temp[keys[i]]) break;
-            temp = temp[keys[i]];
-            path.push({ key: keys[i], obj: temp });
+        // Try to reach the deepest level
+        for (let i = 0; i < parts.length - 1; i++) {
+            if (!current[parts[i]] || typeof current[parts[i]] !== 'object') {
+                break;
+            }
+            path.push({ key: parts[i], obj: current });
+            current = current[parts[i]];
         }
 
-        // Remove the key
-        if (temp && temp[keys[keys.length - 1]] !== undefined) {
-            delete temp[keys[keys.length - 1]];
+        // Delete the target key if it exists
+        const lastKey = parts[parts.length - 1];
+        if (current && current[lastKey] !== undefined) {
+            delete current[lastKey];
         }
 
-        // Clean up empty objects
+        // Clean up empty parent objects from bottom to top
         for (let i = path.length - 1; i >= 0; i--) {
-            const parent = i > 0 ? path[i - 1].obj : obj;
-            const currentKey = path[i].key;
+            const parentObj = i === 0 ? obj : path[i - 1].obj;
+            const keyToCheck = path[i].key;
 
-            if (Object.keys(parent[currentKey]).length === 0) {
-                delete parent[currentKey];
+            const currentObj = parentObj[keyToCheck];
+            
+            // Check if object is empty or has only empty objects as children
+            const isEmpty = typeof currentObj === 'object' && 
+                          currentObj !== null && 
+                          Object.keys(currentObj).length === 0;
+
+            if (isEmpty) {
+                delete parentObj[keyToCheck];
             }
         }
     }
+    return obj;
 };
 
 // Helper to apply translations
@@ -249,7 +157,6 @@ const updateTranslations = async () => {
 
     if (Object.keys(changedKeys).length === 0) {
         console.log(`No changes detected in ${baseFileArg}.`);
-        // We still proceed to ensure missing keys are synced.
     } else {
         console.log(`Detected changes in ${baseFileArg}: ${Object.keys(changedKeys).length} keys`);
     }
@@ -304,7 +211,7 @@ const updateTranslations = async () => {
             const targetLang = langFile.replace('.json', '');
             console.log(`Fetching translations for ${Object.keys(keysToUpdate).length} keys in ${targetLang}...`);
 
-            const translations = await fetchTranslations(keysToUpdate, targetLang);
+            const translations = await fetchTranslations(keysToUpdate, targetLang, baseLangArg, testMode, TRANSLATION_BATCH_SIZE);
 
             if (translations) {
                 console.log(`Applying translations to ${langFile}...`);
@@ -326,15 +233,11 @@ if (require.main === module) {
 
 // Add these exports at the end of the file for testing purposes
 module.exports = {
-    loadJson,
-    saveJson,
-    fetchTranslations,
     extractNestedKeys,
     getPreviousFileContent,
     getChangedKeys,
     getDeletedKeys,
     removeKeys,
     applyTranslations,
-    updateTranslations,
-    translateBatch
+    updateTranslations
 };

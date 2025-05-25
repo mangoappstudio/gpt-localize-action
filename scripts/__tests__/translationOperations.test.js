@@ -1,96 +1,121 @@
-const { setupTestEnvironment, translate } = require('./setup');
+const { setupTestEnvironment } = require('./setup');
+const translationService = require('../translate/translation-service');
+
+jest.mock('../translate/openai', () => ({
+    createTranslation: jest.fn()
+}));
+
+const { createTranslation } = require('../translate/openai');
 
 describe('Translation Operations', () => {
     setupTestEnvironment();
-    
-    // Mock the OpenAI module at the top level
-    jest.mock('openai', () => {
-        return {
-            OpenAI: jest.fn().mockImplementation(() => ({
-                chat: {
-                    completions: {
-                        create: jest.fn().mockResolvedValue({
-                            choices: [
-                                {
-                                    message: {
-                                        content: '{"hello": "bonjour", "world": "monde"}'
-                                    }
-                                }
-                            ]
-                        })
-                    }
-                }
-            }))
-        };
-    });
 
     beforeEach(() => {
-        // Reset all mocks before each test to start fresh
         jest.clearAllMocks();
     });
 
     describe('translateBatch', () => {
-        // it('translates a batch of strings successfully', async () => {
-        //     // Re-require the OpenAI module to use our mock
-        //     const { OpenAI } = require('openai');
-            
-        //     const result = await translate.translateBatch({ hello: 'hello', world: 'world' }, 'fr', 'prompt');
-        //     expect(result).toEqual({ hello: 'bonjour', world: 'monde' });
-        // });
+        it('returns dummy translations in test mode', async () => {
+            const result = await translationService.translateBatch(
+                { 'Hello': 'Hello', 'Goodbye': 'Goodbye' },
+                'fr',
+                'prompt',
+                true
+            );
+            expect(result).toEqual({
+                'Hello': '[TEST] Hello',
+                'Goodbye': '[TEST] Goodbye'
+            });
+        });
 
         it('handles API errors gracefully', async () => {
-            // Get the mocked OpenAI
-            const { OpenAI } = require('openai');
-            
-            // Setup the mock to reject for this test only
-            const mockCreate = jest.fn().mockRejectedValueOnce(new Error('API Error'));
-            OpenAI.mockImplementationOnce(() => ({
-                chat: {
-                    completions: {
-                        create: mockCreate
-                    }
-                }
-            }));
-            
-            const result = await translate.translateBatch({ test: 'test' }, 'fr', 'prompt');
+            createTranslation.mockRejectedValue(new Error('API Error'));
+
+            const result = await translationService.translateBatch(
+                { test: 'test' },
+                'fr',
+                'prompt'
+            );
             expect(result).toBeNull();
+        });
+
+        it('successfully translates content', async () => {
+            createTranslation.mockResolvedValueOnce(
+                JSON.stringify({ "Hello": "Bonjour" })
+            );
+
+            const result = await translationService.translateBatch(
+                { 'Hello': 'Hello' },
+                'fr',
+                'prompt'
+            );
+            expect(result).toEqual({ 'Hello': 'Bonjour' });
+            expect(createTranslation).toHaveBeenCalledTimes(1);
         });
     });
 
-    // describe('fetchTranslations', () => {
-    //     beforeEach(() => {
-    //         // Create a fresh mock for translateBatch in each test
-    //         jest.spyOn(translate, 'translateBatch').mockImplementation((batch) => {
-    //             const result = {};
-    //             Object.keys(batch).forEach(key => {
-    //                 if (key === 'hello') result[key] = 'bonjour';
-    //                 else if (key === 'world') result[key] = 'monde';
-    //                 else result[key] = `translated_${key}`;
-    //             });
-    //             return Promise.resolve(result);
-    //         });
-    //     });
+    describe('fetchTranslations', () => {
+        it('handles small batches directly', async () => {
+            createTranslation.mockResolvedValueOnce(
+                JSON.stringify({ "Hello": "Bonjour" })
+            );
 
-        // it('processes a small batch in one call', async () => {
-        //     const result = await translate.fetchTranslations({ hello: 'hello', world: 'world' }, 'fr');
-        //     expect(result).toEqual({ hello: 'bonjour', world: 'monde' });
-        // });
+            const result = await translationService.fetchTranslations(
+                { 'Hello': 'Hello' },
+                'fr',
+                'en',
+                false,
+                25
+            );
+            expect(result).toEqual({ 'Hello': 'Bonjour' });
+        });
 
-        // it('handles large batches by splitting them up', async () => {
-        //     const translations = {};
-        //     for (let i = 0; i < 150; i++) translations[`key${i}`] = `value${i}`;
-        //     translations['hello'] = 'hello';
-        //     translations['world'] = 'world';
+        it('processes large content in batches', async () => {
+            const translations = {};
+            for (let i = 0; i < 30; i++) {
+                translations[`Key${i}`] = `Value${i}`;
+            }
 
-        //     const result = await translate.fetchTranslations(translations, 'fr');
-        //     expect(result).toHaveProperty('hello', 'bonjour');
-        //     expect(result).toHaveProperty('world', 'monde');
-        // });
+            createTranslation.mockResolvedValue({
+                choices: [{
+                    message: {
+                        content: JSON.stringify({ "Key0": "Translated0" })
+                    }
+                }]
+            });
 
-        // it('returns null when all batches fail', async () => {
-        //     jest.spyOn(translate, 'translateBatch').mockResolvedValue(null);
-        //     const result = await translate.fetchTranslations({ test: 'test' }, 'fr');
-        //     expect(result).toBeNull();
-        // });
-    // });
+            await translationService.fetchTranslations(
+                translations,
+                'fr',
+                'en',
+                false,
+                10
+            );
+            expect(createTranslation).toHaveBeenCalledTimes(3);
+        });
+
+        it('returns dummy translations in test mode', async () => {
+            const result = await translationService.fetchTranslations(
+                { 'Hello': 'Hello', 'Goodbye': 'Goodbye' },
+                'fr',
+                'en',
+                true
+            );
+            expect(result).toEqual({
+                'Hello': '[TEST] Hello',
+                'Goodbye': '[TEST] Goodbye'
+            });
+        });
+
+        it('handles batch failure gracefully', async () => {
+            createTranslation.mockRejectedValue(new Error('API Error'));
+
+            const result = await translationService.fetchTranslations(
+                { 'Hello': 'Hello', 'Goodbye': 'Goodbye' },
+                'fr',
+                'en'
+            );
+            expect(result).toBeNull();
+        });
+    });
 });

@@ -1,26 +1,39 @@
-const { setupTestEnvironment, translate, fs } = require('./setup');
+jest.mock('fs');
+const fs = require('fs');
+const { setupTestEnvironment, translate } = require('./setup');
 
 describe('File Operations', () => {
     setupTestEnvironment();
 
+    beforeEach(() => {
+        jest.clearAllMocks();
+        fs.readFileSync.mockImplementation((path) => {
+            if (path === 'test/test.json') {
+                return JSON.stringify({ hello: 'world' });
+            }
+            if (path === 'test/ca.json') {
+                return 'undefined';
+            }
+            throw new Error('Unexpected file path in test');
+        });
+    });
+
     describe('loadJson', () => {
         it('loads valid JSON from file', () => {
-            fs.readFileSync.mockReturnValue(JSON.stringify({ hello: 'world' }));
-            expect(translate.loadJson('test.json')).toEqual({ hello: 'world' });
+            expect(translate.loadJson('test/test.json')).toEqual({ hello: 'world' });
         });
 
         it('throws on invalid JSON', () => {
-            fs.readFileSync.mockReturnValue('{ invalid json }');
-            expect(() => translate.loadJson('test.json')).toThrow('Error loading JSON from');
+            expect(() => translate.loadJson('test/ca.json')).toThrow('Error loading JSON from');
         });
     });
 
     describe('saveJson', () => {
         it('writes JSON to file', () => {
             const data = { hello: 'world' };
-            translate.saveJson('output.json', data);
+            translate.saveJson('test/output.json', data);
             expect(fs.writeFileSync).toHaveBeenCalledWith(
-                'output.json',
+                'test/output.json',
                 JSON.stringify(data, null, 2),
                 'utf8'
             );

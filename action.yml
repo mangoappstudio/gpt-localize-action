@@ -106,4 +106,3 @@ runs:
         path: .
         add-paths: |
           ${{ inputs.locales_path }}/**/*
-        create-branch: false
