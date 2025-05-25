@@ -59,40 +59,22 @@ runs:
       shell: bash
       env:
         OPENAI_API_KEY: ${{ inputs.openai_api_key }}
-      run: node action-repo/scripts/translate/index.js -d ${{ inputs.locales_path }} -s ${{ inputs.base_language }} -f ${{ inputs.base_file }}
-
-    - name: Configure Git
-      shell: bash
       run: |
-        git config user.name "github-actions[bot]"
-        git config user.email "github-actions[bot]@users.noreply.github.com"
+        node action-repo/scripts/translate/index.js -d ${{ inputs.locales_path }} -s ${{ inputs.base_language }} -f ${{ inputs.base_file }}
+        # Clean up action-repo after running script
+        rm -rf action-repo
 
     - name: Check for changes
       id: check_changes
       shell: bash
       run: |
-        # Exclude action-repo directory from git diff
-        if git diff --quiet -- ':!action-repo'; then
-          echo "No changes detected"
-          echo "has_changes=false" >> $GITHUB_OUTPUT
-        else
+        if git status --porcelain "${{ inputs.locales_path }}" | grep .; then
           echo "Changes detected"
           echo "has_changes=true" >> $GITHUB_OUTPUT
+        else
+          echo "No changes detected"
+          echo "has_changes=false" >> $GITHUB_OUTPUT
         fi
-
-    - name: Create a new branch
-      if: steps.check_changes.outputs.has_changes == 'true'
-      shell: bash
-      run: |
-        BRANCH_NAME="update-translations-$(date +'%Y%m%d%H%M%S')"
-        echo "BRANCH_NAME=$BRANCH_NAME" >> $GITHUB_ENV
-        git checkout -b $BRANCH_NAME
-        
-        # Only stage changes to translation files, explicitly exclude action-repo
-        git add -A -- "${{ inputs.locales_path }}" ':!action-repo'
-        git commit -m "Update translations"
-        # Push the branch to the remote
-        git push -u origin $BRANCH_NAME
 
     - name: Create pull request
       if: steps.check_changes.outputs.has_changes == 'true'
@@ -102,7 +84,8 @@ runs:
         commit-message: Update translations
         committer: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>
         author: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>
-        branch: ${{ env.BRANCH_NAME }}
+        branch: update-translations
+        branch-suffix: timestamp
         delete-branch: true
         base: main
         title: "Update Translations"
