@@ -81,7 +81,7 @@ runs:
       uses: peter-evans/create-pull-request@v7
       with:
         token: ${{ inputs.personal_access_token }}
-        commit-message: Update translations
+        commit-message: "Update translations [ci skip]"
         committer: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>
         author: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>
         branch: update-translations
