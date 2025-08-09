@@ -1,17 +1,24 @@
 const { setupTestEnvironment } = require('./setup');
 const translationService = require('../translate/translation-service');
 
+// Mock both OpenAI and Langchain services
 jest.mock('../translate/openai', () => ({
     createTranslation: jest.fn()
 }));
 
-const { createTranslation } = require('../translate/openai');
+jest.mock('../translate/langchain-service', () => ({
+    createTranslation: jest.fn()
+}));
+
+const { createTranslation: createOpenAITranslation } = require('../translate/openai');
+const { createTranslation: createLangchainTranslation } = require('../translate/langchain-service');
 
 describe('Translation Operations', () => {
     setupTestEnvironment();
 
     beforeEach(() => {
         jest.clearAllMocks();
+        delete process.env.AI_PROVIDER;
     });
 
     describe('translateBatch', () => {
@@ -29,7 +36,7 @@ describe('Translation Operations', () => {
         });
 
         it('handles API errors gracefully', async () => {
-            createTranslation.mockRejectedValue(new Error('API Error'));
+            createOpenAITranslation.mockRejectedValue(new Error('API Error'));
 
             const result = await translationService.translateBatch(
                 { test: 'test' },
@@ -39,8 +46,8 @@ describe('Translation Operations', () => {
             expect(result).toBeNull();
         });
 
-        it('successfully translates content', async () => {
-            createTranslation.mockResolvedValueOnce(
+        it('successfully translates content with OpenAI (default)', async () => {
+            createOpenAITranslation.mockResolvedValueOnce(
                 JSON.stringify({ "Hello": "Bonjour" })
             );
 
@@ -50,13 +57,30 @@ describe('Translation Operations', () => {
                 'prompt'
             );
             expect(result).toEqual({ 'Hello': 'Bonjour' });
-            expect(createTranslation).toHaveBeenCalledTimes(1);
+            expect(createOpenAITranslation).toHaveBeenCalledTimes(1);
+        });
+
+        it('uses Langchain service when AI_PROVIDER is set', async () => {
+            process.env.AI_PROVIDER = 'anthropic';
+            
+            createLangchainTranslation.mockResolvedValueOnce(
+                JSON.stringify({ "Hello": "Bonjour" })
+            );
+
+            const result = await translationService.translateBatch(
+                { 'Hello': 'Hello' },
+                'fr',
+                'prompt'
+            );
+            expect(result).toEqual({ 'Hello': 'Bonjour' });
+            expect(createLangchainTranslation).toHaveBeenCalledTimes(1);
+            expect(createOpenAITranslation).not.toHaveBeenCalled();
         });
     });
 
     describe('fetchTranslations', () => {
         it('handles small batches directly', async () => {
-            createTranslation.mockResolvedValueOnce(
+            createOpenAITranslation.mockResolvedValueOnce(
                 JSON.stringify({ "Hello": "Bonjour" })
             );
 
@@ -76,7 +100,7 @@ describe('Translation Operations', () => {
                 translations[`Key${i}`] = `Value${i}`;
             }
 
-            createTranslation.mockResolvedValue({
+            createOpenAITranslation.mockResolvedValue({
                 choices: [{
                     message: {
                         content: JSON.stringify({ "Key0": "Translated0" })
@@ -91,7 +115,7 @@ describe('Translation Operations', () => {
                 false,
                 10
             );
-            expect(createTranslation).toHaveBeenCalledTimes(3);
+            expect(createOpenAITranslation).toHaveBeenCalledTimes(3);
         });
 
         it('returns dummy translations in test mode', async () => {
@@ -108,7 +132,7 @@ describe('Translation Operations', () => {
         });
 
         it('handles batch failure gracefully', async () => {
-            createTranslation.mockRejectedValue(new Error('API Error'));
+            createOpenAITranslation.mockRejectedValue(new Error('API Error'));
 
             const result = await translationService.fetchTranslations(
                 { 'Hello': 'Hello', 'Goodbye': 'Goodbye' },

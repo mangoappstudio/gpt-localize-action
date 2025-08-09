@@ -1,4 +1,6 @@
-const { createTranslation } = require('./openai');
+// Use Langchain service for AI provider abstraction, with fallback to direct OpenAI
+const { createTranslation: createLangchainTranslation } = require('./langchain-service');
+const { createTranslation: createOpenAITranslation } = require('./openai');
 
 // Helper for dummy translations
 const getDummyTranslations = (translations) => {
@@ -20,7 +22,12 @@ const translateBatch = async (batchTranslations, targetLang, systemPrompt, testM
             { role: 'user', content: JSON.stringify(batchTranslations) },
         ];
 
-        const content = await createTranslation(messages);
+        // Determine which service to use based on environment variables
+        const useLangchain = process.env.AI_PROVIDER && process.env.AI_PROVIDER !== 'openai-direct';
+        const content = useLangchain 
+            ? await createLangchainTranslation(messages)
+            : await createOpenAITranslation(messages);
+        
         const parsedContent = JSON.parse(content);
         
         if (!parsedContent || typeof parsedContent !== 'object') {

@@ -10,6 +10,9 @@
     "test:coverage": "jest --coverage"
   },
   "dependencies": {
+    "@langchain/anthropic": "^0.3.7",
+    "@langchain/core": "^0.3.19",
+    "@langchain/openai": "^0.3.12",
     "axios": "^1.8.2",
     "dotenv": "^16.0.0",
     "fs": "^0.0.1-security",
