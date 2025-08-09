@@ -24,6 +24,10 @@ inputs:
     description: "The base translation file (default: en.json)"
     required: false
     default: "en.json"
+  create_pull_request:
+    description: "Whether to create a pull request (true) or commit directly to branch (false). Default: true"
+    required: false
+    default: "true"
 
 outputs:
   has_changes:
@@ -76,8 +80,18 @@ runs:
           echo "has_changes=false" >> $GITHUB_OUTPUT
         fi
 
+    - name: Commit changes directly
+      if: steps.check_changes.outputs.has_changes == 'true' && inputs.create_pull_request == 'false'
+      shell: bash
+      run: |
+        git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
+        git config --local user.name "github-actions[bot]"
+        git add "${{ inputs.locales_path }}"
+        git commit -m "Update translations [ci skip]"
+        git push
+
     - name: Create pull request
-      if: steps.check_changes.outputs.has_changes == 'true'
+      if: steps.check_changes.outputs.has_changes == 'true' && inputs.create_pull_request == 'true'
       uses: peter-evans/create-pull-request@v7
       with:
         token: ${{ inputs.personal_access_token }}
@@ -87,7 +101,7 @@ runs:
         branch: update-translations
         branch-suffix: timestamp
         delete-branch: true
-        base: main
+        base: ${{ github.ref_name }}
         title: "Update Translations"
         body: |
           This PR includes updated translations based on the latest changes to '${{ inputs.base_file }}'.
