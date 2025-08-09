@@ -7,8 +7,9 @@ Using GPT-4, you can easily keep your translation files up-to-date and in sync w
 - **Automated Key Detection:** Identifies newly added or changed keys in your `en.json` file, ensuring all locale files remain accurate and current.  
 - **Missing Key Recovery:** This program finds and populates any keys missing from your other language files that may have previously gone unsynchronized.  
 - **Powerful AI Translation:** Uses GPT-4 to translate English phrases into multiple target languages, reducing the need for external translation teams or lengthy manual updates.  
-Seamless Integration:** It easily incorporates into existing CI/CD pipelines with minimal configuration. The action can run on schedules, on-demand via workflow dispatch, or every push to `main`.  
-- **Automated Pull Requests:** Once changes are detected and translations applied, the action can create a dedicated branch and open a pull request with updated locale files, streamlining your review process.
+- **Seamless Integration:** It easily incorporates into existing CI/CD pipelines with minimal configuration. The action can run on schedules, on-demand via workflow dispatch, or on any branch.  
+- **Flexible Integration:** Choose between automated pull requests for review or direct commits for immediate updates, adapting to your team's workflow preferences.
+- **Dynamic Branch Support:** Automatically works with any branch - pull requests are created against the current working branch, not hardcoded to main.
 
 ## Usage
 
@@ -16,7 +17,7 @@ Seamless Integration:** It easily incorporates into existing CI/CD pipelines wit
    Store your OpenAI API key (`OPENAI_API_KEY`) and a Personal Access Token (`PERSONAL_ACCESS_TOKEN`) as GitHub Secrets.
 
 2. **Configure Your Workflow:**  
-   Add the action to your workflow file, specifying the `locales_path` where your base translation and target language files reside. You can also select the base language and base translation file.  
+   Add the action to your workflow file, specifying the `locales_path` where your base translation and target language files reside. You can customize the base language, base file, and how changes are handled.
 
    ```yaml
    name: Update Translations
@@ -39,10 +40,14 @@ Seamless Integration:** It easily incorporates into existing CI/CD pipelines wit
              locales_path: "./path/to/locales" # Optional, default is "./locales"
              base_language: "en" # Optional, default is "en"
              base_file: "en.json" # Optional, default is "en.json"
+             create_pull_request: "true" # Optional, default is "true"
    ```
 
 3. **Review & Merge:**  
-   Once the action runs, it will open a pull request with updated translations. Review and merge the changes to keep your app’s translations fresh and consistent.
+   By default, the action creates a pull request with updated translations against the current branch. You can review and merge these changes to keep your app's translations fresh and consistent.
+   
+   **Alternative: Direct Commits**  
+   Set `create_pull_request: "false"` to commit translation updates directly to the current branch (requires appropriate repository permissions).
 
 ## Why GPT Localize Action?
 
