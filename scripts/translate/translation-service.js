@@ -1,4 +1,5 @@
-const { createTranslation } = require('./openai');
+// Use Langchain service for AI provider abstraction
+const { createTranslation } = require('./langchain-service');
 
 // Helper for dummy translations
 const getDummyTranslations = (translations) => {
@@ -20,7 +21,9 @@ const translateBatch = async (batchTranslations, targetLang, systemPrompt, testM
             { role: 'user', content: JSON.stringify(batchTranslations) },
         ];
 
+        // Use Langchain service for all AI provider interactions
         const content = await createTranslation(messages);
+        
         const parsedContent = JSON.parse(content);
         
         if (!parsedContent || typeof parsedContent !== 'object') {
