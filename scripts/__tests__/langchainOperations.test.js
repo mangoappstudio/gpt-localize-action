@@ -163,15 +163,4 @@ describe('Langchain Service', () => {
                 .rejects.toThrow('Unsupported message role: assistant');
         });
     });
-
-    describe('getAvailableProviders', () => {
-        it('returns provider information', () => {
-            const providers = langchainService.getAvailableProviders();
-            
-            expect(providers).toHaveProperty('openai');
-            expect(providers).toHaveProperty('anthropic');
-            expect(providers.openai).toHaveProperty('defaultModel', 'gpt-4');
-            expect(providers.anthropic).toHaveProperty('defaultModel', 'claude-3-haiku-20240307');
-        });
-    });
 });

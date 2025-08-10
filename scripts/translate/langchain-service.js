@@ -40,7 +40,7 @@ const createTranslation = async (messages, provider = 'openai', model = null, ap
     // Use environment variables as fallback
     const effectiveProvider = provider || process.env.AI_PROVIDER || 'openai';
     const effectiveModel = model || process.env.AI_MODEL || (effectiveProvider === 'openai' ? 'gpt-4' : 'claude-3-haiku-20240307');
-    const effectiveApiKey = apiKey || process.env.AI_API_KEY || process.env.OPENAI_API_KEY;
+    const effectiveApiKey = apiKey || process.env.AI_API_KEY;
 
     if (!effectiveApiKey) {
         throw new Error(`API key required for provider: ${effectiveProvider}`);
@@ -72,25 +72,7 @@ const createTranslation = async (messages, provider = 'openai', model = null, ap
     }
 };
 
-/**
- * Gets available providers and their default models
- * @returns {Object} Object mapping providers to their default models
- */
-const getAvailableProviders = () => {
-    return {
-        openai: {
-            defaultModel: 'gpt-4',
-            alternativeModels: ['gpt-4', 'gpt-3.5-turbo', 'gpt-4-turbo-preview']
-        },
-        anthropic: {
-            defaultModel: 'claude-3-haiku-20240307',
-            alternativeModels: ['claude-3-haiku-20240307', 'claude-3-sonnet-20240229', 'claude-3-opus-20240229']
-        }
-    };
-};
-
 module.exports = {
     createTranslation,
     createChatModel,
-    getAvailableProviders,
 };

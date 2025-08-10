@@ -72,7 +72,6 @@ runs:
     - name: Run translation update script
       shell: bash
       env:
-        OPENAI_API_KEY: ${{ inputs.openai_api_key }}
         AI_API_KEY: ${{ inputs.ai_api_key || inputs.openai_api_key }}
         AI_PROVIDER: ${{ inputs.ai_provider }}
         AI_MODEL: ${{ inputs.ai_model }}
