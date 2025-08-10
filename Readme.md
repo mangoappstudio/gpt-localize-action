@@ -16,41 +16,7 @@ Now supports multiple AI providers including OpenAI and Anthropic through Langch
 
 ## Usage
 
-### Basic Setup (OpenAI)
-
-1. **Setup OpenAI & GitHub Secrets:**  
-   Store your OpenAI API key (`OPENAI_API_KEY`) and a Personal Access Token (`PERSONAL_ACCESS_TOKEN`) as GitHub Secrets.
-
-2. **Configure Your Workflow:**  
-   Add the action to your workflow file, specifying the `locales_path` where your base translation and target language files reside.
-
-   ```yaml
-   name: Update Translations
-   on:
-     workflow_dispatch:
-     schedule:
-       - cron: '0 0 * * 0'
-     push:
-       branches:
-         - main
-   jobs:
-     update-translations:
-       runs-on: ubuntu-latest
-       steps:
-         - name: Use GPT Localize Action
-           uses: mangoappstudio/gpt-localize-action@v3.0.0
-           with:
-             openai_api_key: ${{ secrets.OPENAI_API_KEY }}
-             personal_access_token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
-             locales_path: "./path/to/locales" # Optional, default is "./locales"
-             base_language: "en" # Optional, default is "en"
-             base_file: "en.json" # Optional, default is "en.json"
-             create_pull_request: "true" # Optional, default is "true"
-   ```
-
-### Multi-Provider Setup (New!)
-
-You can now use different AI providers beyond OpenAI:
+You can now use AI models from OpenAI or Anthropic to generate translations. 
 
 **Using Anthropic Claude:**
 ```yaml
