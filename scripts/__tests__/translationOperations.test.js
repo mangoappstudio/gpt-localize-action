@@ -1,16 +1,11 @@
 const { setupTestEnvironment } = require('./setup');
 const translationService = require('../translate/translation-service');
 
-// Mock both OpenAI and Langchain services
-jest.mock('../translate/openai', () => ({
-    createTranslation: jest.fn()
-}));
-
+// Mock Langchain service
 jest.mock('../translate/langchain-service', () => ({
     createTranslation: jest.fn()
 }));
 
-const { createTranslation: createOpenAITranslation } = require('../translate/openai');
 const { createTranslation: createLangchainTranslation } = require('../translate/langchain-service');
 
 describe('Translation Operations', () => {
@@ -36,7 +31,7 @@ describe('Translation Operations', () => {
         });
 
         it('handles API errors gracefully', async () => {
-            createOpenAITranslation.mockRejectedValue(new Error('API Error'));
+            createLangchainTranslation.mockRejectedValue(new Error('API Error'));
 
             const result = await translationService.translateBatch(
                 { test: 'test' },
@@ -46,23 +41,7 @@ describe('Translation Operations', () => {
             expect(result).toBeNull();
         });
 
-        it('successfully translates content with OpenAI (default)', async () => {
-            createOpenAITranslation.mockResolvedValueOnce(
-                JSON.stringify({ "Hello": "Bonjour" })
-            );
-
-            const result = await translationService.translateBatch(
-                { 'Hello': 'Hello' },
-                'fr',
-                'prompt'
-            );
-            expect(result).toEqual({ 'Hello': 'Bonjour' });
-            expect(createOpenAITranslation).toHaveBeenCalledTimes(1);
-        });
-
-        it('uses Langchain service when AI_PROVIDER is set', async () => {
-            process.env.AI_PROVIDER = 'anthropic';
-            
+        it('successfully translates content using Langchain service', async () => {
             createLangchainTranslation.mockResolvedValueOnce(
                 JSON.stringify({ "Hello": "Bonjour" })
             );
@@ -74,13 +53,12 @@ describe('Translation Operations', () => {
             );
             expect(result).toEqual({ 'Hello': 'Bonjour' });
             expect(createLangchainTranslation).toHaveBeenCalledTimes(1);
-            expect(createOpenAITranslation).not.toHaveBeenCalled();
         });
     });
 
     describe('fetchTranslations', () => {
         it('handles small batches directly', async () => {
-            createOpenAITranslation.mockResolvedValueOnce(
+            createLangchainTranslation.mockResolvedValueOnce(
                 JSON.stringify({ "Hello": "Bonjour" })
             );
 
@@ -100,13 +78,9 @@ describe('Translation Operations', () => {
                 translations[`Key${i}`] = `Value${i}`;
             }
 
-            createOpenAITranslation.mockResolvedValue({
-                choices: [{
-                    message: {
-                        content: JSON.stringify({ "Key0": "Translated0" })
-                    }
-                }]
-            });
+            createLangchainTranslation.mockResolvedValue(
+                JSON.stringify({ "Key0": "Translated0" })
+            );
 
             await translationService.fetchTranslations(
                 translations,
@@ -115,7 +89,7 @@ describe('Translation Operations', () => {
                 false,
                 10
             );
-            expect(createOpenAITranslation).toHaveBeenCalledTimes(3);
+            expect(createLangchainTranslation).toHaveBeenCalledTimes(3);
         });
 
         it('returns dummy translations in test mode', async () => {
@@ -132,7 +106,7 @@ describe('Translation Operations', () => {
         });
 
         it('handles batch failure gracefully', async () => {
-            createOpenAITranslation.mockRejectedValue(new Error('API Error'));
+            createLangchainTranslation.mockRejectedValue(new Error('API Error'));
 
             const result = await translationService.fetchTranslations(
                 { 'Hello': 'Hello', 'Goodbye': 'Goodbye' },
