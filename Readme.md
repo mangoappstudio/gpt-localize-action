@@ -1,15 +1,12 @@
 # GPT Localize Action
 
-Using AI-powered translation, you can easily keep your translation files up-to-date and in sync with the latest English source strings. This action automatically detects changed or missing keys in your `en.json` source file, requests translations for multiple target languages, and updates your repository with the new localized content—no manual translation management required.
-
-**✨ New in v3.0: Multi-Provider AI Support**  
-Now supports multiple AI providers including OpenAI and Anthropic through Langchain integration, giving you flexibility in choosing your preferred AI service.
+Using AI-powered translation, you can easily keep your translation files up-to-date and in sync with the latest English source strings. This action automatically detects changed or missing keys in your `en.json` source file, requests translations for multiple target languages, and updates your repository with the new localized content—no manual translation management required. It supports multiple AI providers, including OpenAI and Anthropic, through Langchain integration, giving you flexibility in choosing your preferred AI service.
 
 ## Key Features
 
 - **Automated Key Detection:** Identifies newly added or changed keys in your `en.json` file, ensuring all locale files remain accurate and current.  
 - **Missing Key Recovery:** This program finds and populates any keys missing from your other language files that may have previously gone unsynchronized.  
-- **Multi-Provider AI Translation:** Choose from OpenAI (GPT-4, GPT-3.5-turbo) or Anthropic (Claude 3) models through unified Langchain interface.  
+- **Multi-Provider AI Translation:** Choose from OpenAI (GPT-4, GPT-3.5-turbo) or Anthropic (Claude 3) models through a unified Langchain interface.  
 - **Seamless Integration:** It easily incorporates into existing CI/CD pipelines with minimal configuration. The action can run on schedules, on-demand via workflow dispatch, or on any branch.  
 - **Flexible Integration:** Choose between automated pull requests for review or direct commits for immediate updates, adapting to your team's workflow preferences.
 - **Dynamic Branch Support:** Automatically works with any branch - pull requests are created against the current working branch, not hardcoded to main.
@@ -30,7 +27,7 @@ You can now use AI models from OpenAI or Anthropic to generate translations.
     locales_path: "./locales"
 ```
 
-**Using OpenAI with specific model:**
+**Using OpenAI with a specific model:**
 ```yaml
 - name: Use GPT Localize Action with GPT-3.5
   uses: mangoappstudio/gpt-localize-action@v3.0.0
