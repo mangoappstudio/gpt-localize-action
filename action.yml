@@ -51,14 +51,17 @@ runs:
   using: "composite"
   steps:
     - name: Resolve GitHub token
+      id: resolve_github_token
       shell: bash
       run: |
-        echo "LOCALIZE_GITHUB_TOKEN=${{ inputs.token || inputs.personal_access_token || github.token }}" >> "$GITHUB_ENV"
+        echo "token=${{ inputs.token || inputs.personal_access_token || github.token }}" >> "$GITHUB_OUTPUT"
 
     - name: Validate inputs
       shell: bash
+      env:
+        RESOLVED_TOKEN: ${{ steps.resolve_github_token.outputs.token }}
       run: |
-        if [[ -z "${LOCALIZE_GITHUB_TOKEN}" ]]; then
+        if [[ -z "${RESOLVED_TOKEN}" ]]; then
           echo "::error title=Missing input::No GitHub token provided (set 'token' or 'personal_access_token')."
           exit 1
         fi
@@ -68,7 +71,7 @@ runs:
       with:
         fetch-depth: 0
         persist-credentials: true
-        token: ${{ env.LOCALIZE_GITHUB_TOKEN }}
+        token: ${{ steps.resolve_github_token.outputs.token }}
 
     - name: Set up Node.js
       uses: actions/setup-node@v3
@@ -115,9 +118,9 @@ runs:
       if: steps.check_changes.outputs.has_changes == 'true' && inputs.create_pull_request == 'true'
       uses: peter-evans/create-pull-request@v7
       env:
-        GITHUB_TOKEN: ${{ env.LOCALIZE_GITHUB_TOKEN }}
+        GITHUB_TOKEN: ${{ steps.resolve_github_token.outputs.token }}
       with:
-        token: ${{ env.LOCALIZE_GITHUB_TOKEN }}
+        token: ${{ steps.resolve_github_token.outputs.token }}
         commit-message: "Update translations [ci skip]"
         committer: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>
         author: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>
