@@ -41,6 +41,26 @@ inputs:
     description: "Whether to create a pull request (true) or commit directly to branch (false). Default: true"
     required: false
     default: "true"
+  rate_limit_max_retries:
+    description: "Max retries per request on 429 rate limits (default: 6)"
+    required: false
+    default: "6"
+  rate_limit_error_threshold:
+    description: "Fail the run after this many total 429s (default: 25)"
+    required: false
+    default: "25"
+  rate_limit_base_delay_ms:
+    description: "Initial backoff delay in ms for 429 retries (default: 1000)"
+    required: false
+    default: "1000"
+  rate_limit_max_delay_ms:
+    description: "Max backoff delay in ms for 429 retries (default: 30000)"
+    required: false
+    default: "30000"
+  rate_limit_jitter_ms:
+    description: "Max jitter in ms added to 429 backoff (default: 250)"
+    required: false
+    default: "250"
 
 outputs:
   has_changes:
@@ -89,6 +109,11 @@ runs:
         AI_API_KEY: ${{ inputs.ai_api_key || inputs.openai_api_key }}
         AI_PROVIDER: ${{ inputs.ai_provider }}
         AI_MODEL: ${{ inputs.ai_model }}
+        AI_RATE_LIMIT_MAX_RETRIES: ${{ inputs.rate_limit_max_retries }}
+        AI_RATE_LIMIT_ERROR_THRESHOLD: ${{ inputs.rate_limit_error_threshold }}
+        AI_RATE_LIMIT_BASE_DELAY_MS: ${{ inputs.rate_limit_base_delay_ms }}
+        AI_RATE_LIMIT_MAX_DELAY_MS: ${{ inputs.rate_limit_max_delay_ms }}
+        AI_RATE_LIMIT_JITTER_MS: ${{ inputs.rate_limit_jitter_ms }}
       run: |
         node ${{ github.action_path }}/scripts/translate/index.js -d ${{ inputs.locales_path }} -s ${{ inputs.base_language }} -f ${{ inputs.base_file }}
 
