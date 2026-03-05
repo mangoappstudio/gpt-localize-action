@@ -6,6 +6,9 @@ branding:
   icon: "globe"
 
 inputs:
+  token:
+    description: "GitHub token used for git operations (recommended). Defaults to the workflow's GITHUB_TOKEN."
+    required: false
   openai_api_key:
     description: "OpenAI API key for fetching translations (deprecated, use ai_api_key)"
     required: false
@@ -20,8 +23,8 @@ inputs:
     description: "AI model to use. Default depends on provider (gpt-4 for openai, claude-3-haiku-20240307 for anthropic)"
     required: false
   personal_access_token:
-    description: "Personal Access Token to create branches and PRs"
-    required: true
+    description: "Personal Access Token to create branches and PRs (deprecated, use token)"
+    required: false
   locales_path:
     description: "The path to the locales directory relative to the repository root"
     required: true
@@ -47,17 +50,25 @@ outputs:
 runs:
   using: "composite"
   steps:
+    - name: Resolve GitHub token
+      shell: bash
+      run: |
+        echo "LOCALIZE_GITHUB_TOKEN=${{ inputs.token || inputs.personal_access_token || github.token }}" >> "$GITHUB_ENV"
+
+    - name: Validate inputs
+      shell: bash
+      run: |
+        if [[ -z "${LOCALIZE_GITHUB_TOKEN}" ]]; then
+          echo "::error title=Missing input::No GitHub token provided (set 'token' or 'personal_access_token')."
+          exit 1
+        fi
+
     - name: Checkout repository
       uses: actions/checkout@v3
       with:
-        fetch-depth: 2
-
-    - name: Checkout action repository
-      uses: actions/checkout@v3
-      with:
-        repository: mangoappstudio/gpt-localize-action
-        path: action-repo
-        ref: main
+        fetch-depth: 0
+        persist-credentials: true
+        token: ${{ env.LOCALIZE_GITHUB_TOKEN }}
 
     - name: Set up Node.js
       uses: actions/setup-node@v3
@@ -66,7 +77,7 @@ runs:
     
     - name: Install dependencies
       shell: bash
-      working-directory: ./action-repo/scripts/translate
+      working-directory: ${{ github.action_path }}/scripts/translate
       run: yarn install
 
     - name: Run translation update script
@@ -76,9 +87,7 @@ runs:
         AI_PROVIDER: ${{ inputs.ai_provider }}
         AI_MODEL: ${{ inputs.ai_model }}
       run: |
-        node action-repo/scripts/translate/index.js -d ${{ inputs.locales_path }} -s ${{ inputs.base_language }} -f ${{ inputs.base_file }}
-        # Clean up action-repo after running script
-        rm -rf action-repo
+        node ${{ github.action_path }}/scripts/translate/index.js -d ${{ inputs.locales_path }} -s ${{ inputs.base_language }} -f ${{ inputs.base_file }}
 
     - name: Check for changes
       id: check_changes
@@ -105,8 +114,10 @@ runs:
     - name: Create pull request
       if: steps.check_changes.outputs.has_changes == 'true' && inputs.create_pull_request == 'true'
       uses: peter-evans/create-pull-request@v7
+      env:
+        GITHUB_TOKEN: ${{ env.LOCALIZE_GITHUB_TOKEN }}
       with:
-        token: ${{ inputs.personal_access_token }}
+        token: ${{ env.LOCALIZE_GITHUB_TOKEN }}
         commit-message: "Update translations [ci skip]"
         committer: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>
         author: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>
